@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "prototype.html.gz.b64.part5"
+      - ".github/workflows/publish-prototype.yml"
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,12 +15,13 @@ jobs:
       - name: Decode complete approved prototype
         run: |
           python3 - <<'PY'
-          import base64, gzip, pathlib
+          import base64, gzip, pathlib, hashlib
           src = ''.join(pathlib.Path('prototype.html.gz.b64.part'+str(i)).read_text().strip() for i in range(1,6))
           target = gzip.decompress(base64.b64decode(src))
           assert target.startswith(b'<!doctype html>'), 'Expected HTML'
-          assert b'ALLE KAMPDATA, STATUSSEN EN GEBOORTEJAREN ZIJN FICTIEF' in target
+          assert b'ALLE KAMPDATA, STATUSSEN EN GEBORTEJAREN ZIJN FICTIEF' in target
           assert b'noindex, nofollow' in target
+          assert hashlib.sha256(target).hexdigest() == 'f6229486b8cff7d8adc910c8b2c0cdbafbf2d17a13ab21cd61ab7df6177b7bd0'
           pathlib.Path('index.html').write_bytes(target)
           PY
       - name: Publish index.html
