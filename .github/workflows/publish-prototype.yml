@@ -1,0 +1,36 @@
+name: Publish BJK prototype HTML
+on:
+  push:
+    paths:
+      - "prototype.html.gz.b64"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Decode approved prototype
+        run: |
+          python3 - <<'PY'
+          import base64, gzip, pathlib
+          source = pathlib.Path('prototype.html.gz.b64').read_text().strip()
+          target = gzip.decompress(base64.b64decode(source))
+          assert target.startswith(b'<!doctype html>'), 'Expected full HTML prototype'
+          assert b'ALLE KAMPDATA, STATUSSEN EN GEBOORTEJAREN ZIJN FICTIEF' in target
+          pathlib.Path('index.html').write_bytes(target)
+          PY
+      - name: Publish index.html
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No prototype changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Publish BJK clickable prototype v0.1"
+          git push
